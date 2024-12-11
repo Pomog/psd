@@ -46,6 +46,9 @@ Y_normalized = scaler_Y.fit_transform(Y)
 model = LinearRegression()
 model.fit(X_normalized, Y_normalized)
 
+print("Calculated W\n", model.coef_)
+print("Calculated b\n", model.intercept_)
+
 # Define the objective function for optimization
 # The function takes input parameters and returns the error between the predicted output and Y_desired
 def objective(X_input):

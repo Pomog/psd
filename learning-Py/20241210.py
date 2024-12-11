@@ -13,12 +13,12 @@ parameter_names = [
 # Experiment parameters: solvent/reagent mass, temperature C, catalyst amount %
 X = np.array([
     [3, 60, 1],
-    [4, 60, 2],
-    [5, 50, 4],
-    [6, 50, 8],
-    [7, 40, 16],
-    [8, 30, 32],
-    [9, 20, 64]
+    [4, 60, 1],
+    [5, 50, 1],
+    [6, 50, 1],
+    [7, 40, 1],
+    [8, 30, 1],
+    [9, 20, 2]
 ])
 
 # Define the output names (corresponding to the columns in the input data)
