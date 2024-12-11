@@ -12,13 +12,13 @@ parameter_names = [
 
 # Experiment parameters: solvent/reagent mass, temperature C, catalyst amount %
 X = np.array([
-    [3, 60, 6],
-    [4, 60, 6],
-    [5, 50, 5],
-    [6, 50, 5],
-    [7, 40, 3],
-    [8, 30, 3],
-    [9, 20, 1]
+    [3, 60, 1],
+    [4, 60, 2],
+    [5, 50, 4],
+    [6, 50, 8],
+    [7, 40, 16],
+    [8, 30, 32],
+    [9, 20, 64]
 ])
 
 # Define the output names (corresponding to the columns in the input data)
@@ -113,7 +113,7 @@ def objective(X_input):
 
 
 # Desired target in the original scale
-Y_desired = np.array([[70]])
+Y_desired = np.array([[90]])
 
 if Y_desired.shape[1] != Y.shape[1]:
     raise ValueError("Y_desired dimensions must match Y's output dimensions.")
