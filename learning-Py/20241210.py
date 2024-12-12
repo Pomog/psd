@@ -1,7 +1,11 @@
 import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from scipy.optimize import minimize
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Define the parameter names (corresponding to the columns in the input data)
 parameter_names = [
@@ -12,13 +16,13 @@ parameter_names = [
 
 # Experiment parameters: solvent/reagent mass, temperature C, catalyst amount %
 X = np.array([
-    [3, 60, 1],
-    [4, 60, 1],
-    [5, 50, 1],
-    [6, 50, 1],
-    [7, 40, 1],
-    [8, 30, 1],
-    [9, 20, 2]
+    [3, 60, 10],
+    [4, 60, 7],
+    [5, 50, 6],
+    [6, 50, 5],
+    [7, 40, 4],
+    [8, 30, 3],
+    [9, 20, 1]
 ])
 
 # Define the output names (corresponding to the columns in the input data)
@@ -37,7 +41,6 @@ Y = np.array([
     [80],
     [90]
 ])
-
 
 if X.shape[0] != Y.shape[0]:
     raise ValueError("Number of samples in X and Y must be the same.")
@@ -95,6 +98,60 @@ model.fit(X_normalized, Y_normalized)
 print("Calculated W\n", model.coef_)
 print("Calculated b\n", model.intercept_)
 
+# Accuracy of the model
+Y_pred = model.predict(X)
+print("Predicted results:")
+print(Y_pred)
+
+mse = mean_squared_error(Y, Y_pred)
+r2 = r2_score(Y, Y_pred)
+
+print(f"MSE: {mse}, R^2: {r2}")
+
+residuals = Y - Y_pred
+plt.scatter(Y_pred, residuals)
+plt.axhline(0, color='red', linestyle='--')
+plt.xlabel("Predicted values")
+plt.ylabel("Residuals")
+plt.title("Linear model Residuals plot")
+plt.show()
+
+poly_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+poly_model.fit(X, Y)
+
+Y_pred_poly = poly_model.predict(X)
+print("Predicted results Poly model, degree 2:")
+print(Y_pred_poly)
+
+poly_mse = mean_squared_error(Y, poly_model.predict(X))
+poly_r2 = r2_score(Y, poly_model.predict(X))
+
+print(f"POLY MSE: {poly_mse}, POLY R^2: {poly_r2}")
+
+for i, param_name in enumerate(parameter_names):
+    label_text = param_name + "Linear regression model"
+    plt.scatter(X[:, i], Y, label=label_text)
+    plt.plot(X[:, i], model.predict(X), color='red')
+    plt.xlabel(param_name)
+    plt.ylabel("Result")
+    plt.title(f"Dependency {param_name}")
+    plt.legend()
+    plt.show()
+
+df = pd.DataFrame(X, columns=parameter_names)
+correlation_matrix = df.corr()
+print("If correlation values (≥0.8) are high between parameters, the model may suffer from multi-collinearity.")
+print(correlation_matrix)
+
+for i, param_name in enumerate(parameter_names):
+    label_text = param_name + " Polynomial regression model"
+    plt.scatter(X[:, i], Y, label=label_text)
+    plt.plot(X[:, i], poly_model.predict(X), color='red')
+    plt.xlabel(param_name)
+    plt.ylabel("Result")
+    plt.title(f"Dependency {param_name}")
+    plt.legend()
+    plt.show()
 
 # X_input represents a single set of normalized input parameters
 # serves as the "feedback loop" for the optimizer - how well the current parameters perform
@@ -104,10 +161,10 @@ def objective(X_input):
     Y_pred_normalized = model.predict(X_input_reshaped)
 
     # Reverse the normalization to get the predicted output in the original scale
-    Y_pred = scaler_Y.inverse_transform(Y_pred_normalized)
+    Y_pred_original = scaler_Y.inverse_transform(Y_pred_normalized)
 
     # Calculate the error
-    error = np.mean((Y_pred - Y_desired) ** 2)
+    error = np.mean((Y_pred_original - Y_desired) ** 2)
     print("error: ", error)
     return error
 
@@ -122,7 +179,6 @@ if Y_desired.shape[1] != Y.shape[1]:
 # corresponds to normalized values at the midpoint of the scaled range
 # domain knowledge or data insights should be used as the initial guess
 initial_guess = np.mean(X_normalized, axis=0)
-
 
 # Optimization is the process of adjusting input parameters (X_input) to minimize a target error.
 # The steps include:
