@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
@@ -25,10 +26,22 @@ X = np.array([
     [9, 20, 1]
 ])
 
+df = pd.DataFrame(X, columns=parameter_names)
+correlation_matrix = df.corr()
+print("If correlation values (≥0.8) are high between parameters, the model may suffer from multi-collinearity.")
+print(correlation_matrix)
+
+# Principal Component Analysis
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+print("Explained variance:", pca.explained_variance_ratio_)
+print("X_PCA:", X_pca)
+
+
 # Define the output names (corresponding to the columns in the input data)
 output_names = [
-    "yield %",
-    "purity %"
+    "yield %"
 ]
 
 # Output results: yield %, purity %
@@ -46,8 +59,9 @@ if X.shape[0] != Y.shape[0]:
     raise ValueError("Number of samples in X and Y must be the same.")
 
 print("Shape of X:", X.shape)
-print("Shape of Y:", Y.shape)
 print("Experiment parameters. Raw data\n", X)
+
+print("Shape of Y:", Y.shape)
 print("Experiment results. Raw data\n", Y)
 
 # Scaling the input date to have similar ranges, using StandardScaler
@@ -116,6 +130,16 @@ plt.ylabel("Residuals")
 plt.title("Linear model Residuals plot")
 plt.show()
 
+for i, param_name in enumerate(parameter_names):
+    label_text = param_name + " Linear regression model"
+    plt.scatter(X[:, i], Y, label=label_text)
+    plt.plot(X[:, i], model.predict(X), color='red')
+    plt.xlabel(param_name)
+    plt.ylabel("Result")
+    plt.title(f"Dependency {param_name}")
+    plt.legend()
+    plt.show()
+
 poly_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
 poly_model.fit(X, Y)
 
@@ -127,21 +151,6 @@ poly_mse = mean_squared_error(Y, poly_model.predict(X))
 poly_r2 = r2_score(Y, poly_model.predict(X))
 
 print(f"POLY MSE: {poly_mse}, POLY R^2: {poly_r2}")
-
-for i, param_name in enumerate(parameter_names):
-    label_text = param_name + "Linear regression model"
-    plt.scatter(X[:, i], Y, label=label_text)
-    plt.plot(X[:, i], model.predict(X), color='red')
-    plt.xlabel(param_name)
-    plt.ylabel("Result")
-    plt.title(f"Dependency {param_name}")
-    plt.legend()
-    plt.show()
-
-df = pd.DataFrame(X, columns=parameter_names)
-correlation_matrix = df.corr()
-print("If correlation values (≥0.8) are high between parameters, the model may suffer from multi-collinearity.")
-print(correlation_matrix)
 
 for i, param_name in enumerate(parameter_names):
     label_text = param_name + " Polynomial regression model"
