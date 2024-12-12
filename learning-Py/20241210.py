@@ -32,12 +32,55 @@ print("If correlation values (≥0.8) are high between parameters, the model may
 print(correlation_matrix)
 
 # Principal Component Analysis
-pca = PCA(n_components=2)
+pca = PCA(n_components=3)
+# Sensitive to outliers, they can distort the variance.
 X_pca = pca.fit_transform(X)
 
-print("Explained variance:", pca.explained_variance_ratio_)
+print("Explained variance:", pca.explained_variance_)
 print("X_PCA:", X_pca)
 
+num_components = sum(pca.explained_variance_ > 1)
+print(f"Number of components selected by Kaiser Criterion: {num_components}")
+
+plt.plot(range(1, len(pca.explained_variance_) + 1), pca.explained_variance_)
+plt.xlabel('Principal Component')
+plt.ylabel('Eigenvalue (Variance)')
+plt.title('Scree Plot')
+plt.axvline(x=3, color='r', linestyle='--')  # Example: 3 components
+plt.show()
+
+# Plot cumulative explained variance
+plt.plot(np.cumsum(pca.explained_variance_ratio_))
+plt.xlabel('Number of Components')
+plt.ylabel('Cumulative Explained Variance')
+plt.title('Choosing the Number of Principal Components')
+plt.axhline(y=0.95, color='r', linestyle='--')
+plt.show()
+
+# Reconstruct dataset using only the two principal components (PC1, PC2)
+X_pca_reduced = X_pca[:, :2]  # Two principal component
+print("X_pca_reduced: ", X_pca_reduced)
+X_reconstructed = pca.inverse_transform(np.hstack((X_pca_reduced, np.zeros((X_pca.shape[0], 1)))))
+
+# Compare original and reconstructed datasets
+df_reconstructed = pd.DataFrame(X_reconstructed, columns=parameter_names)
+print("Reconstructed dataset:")
+print(df_reconstructed)
+
+# Calculate reconstruction error (difference between original and reconstructed data)
+reconstruction_error = np.abs(X - X_reconstructed)
+print("Reconstruction error:")
+print(pd.DataFrame(reconstruction_error, columns=parameter_names))
+
+plt.figure(figsize=(8, 6))
+for i, param in enumerate(parameter_names):
+    plt.scatter(df[param], df_reconstructed[param], label=param)
+plt.plot([X.min(), X.max()], [X.min(), X.max()], 'r--')  # Reference line
+plt.xlabel('Original Values')
+plt.ylabel('Reconstructed Values')
+plt.title('Original vs Reconstructed Data')
+plt.legend()
+plt.show()
 
 # Define the output names (corresponding to the columns in the input data)
 output_names = [
@@ -77,10 +120,10 @@ scaler_Y = StandardScaler()
 # fit - Computes μ and σ for each column, snd stores internally for later use
 # transform - applies 𝑥′=(𝑥−𝜇)/𝜎 to each 𝑥 value
 # Ensures no feature dominates others due to scale
-X_normalized = scaler_X.fit_transform(X)
+X_normalized = scaler_X.fit_transform(X_pca_reduced)
 Y_normalized = scaler_Y.fit_transform(Y)
 
-print("Normalized Experiment parameters:\n", X_normalized)
+print("Normalized Experiment parameters PCA reduced:\n", X_normalized)
 print("means for Experiment parameters ", scaler_X.mean_)
 print("Mean of X (normalized):", np.mean(X_normalized, axis=0))
 print("Std of X (normalized):", np.std(X_normalized, axis=0))
@@ -91,7 +134,9 @@ print("Mean of Y (normalized):", np.mean(Y_normalized, axis=0))
 print("Std of Y (normalized):", np.std(Y_normalized, axis=0))
 
 print("Now lets see what if we use inverse_transform")
-print("inverse_transform Experiment parameters:\n", scaler_X.inverse_transform(X_normalized))
+X_pca_reconstructed = scaler_X.inverse_transform(X_normalized)
+X_reconstructed = pca.inverse_transform(np.hstack((X_pca_reconstructed, np.zeros((X_pca.shape[0], 1)))))
+print("inverse_transform Experiment parameters:\n", X_reconstructed)
 print("inverse_transform Experiment parameters:\n", scaler_Y.inverse_transform(Y_normalized))
 
 # Train the model using Linear Regression
@@ -107,19 +152,19 @@ model = LinearRegression()
 
 # Calculating the weights and the intercept of the linear regression equation based the normalized data
 # The method starts with some initial guesses for W and b often zeros
-model.fit(X_normalized, Y_normalized)
+model.fit(X_pca_reduced, Y_normalized)
 
 print("Calculated W\n", model.coef_)
 print("Calculated b\n", model.intercept_)
 
 # Accuracy of the model
-Y_pred = model.predict(X)
+Y_pred_normalized = model.predict(X_pca_reduced)
+Y_pred = scaler_Y.inverse_transform(Y_pred_normalized)
 print("Predicted results:")
 print(Y_pred)
 
 mse = mean_squared_error(Y, Y_pred)
 r2 = r2_score(Y, Y_pred)
-
 print(f"MSE: {mse}, R^2: {r2}")
 
 residuals = Y - Y_pred
@@ -133,7 +178,7 @@ plt.show()
 for i, param_name in enumerate(parameter_names):
     label_text = param_name + " Linear regression model"
     plt.scatter(X[:, i], Y, label=label_text)
-    plt.plot(X[:, i], model.predict(X), color='red')
+    plt.plot(X[:, i], Y_pred, color='red')
     plt.xlabel(param_name)
     plt.ylabel("Result")
     plt.title(f"Dependency {param_name}")
@@ -162,18 +207,21 @@ for i, param_name in enumerate(parameter_names):
     plt.legend()
     plt.show()
 
+
 # X_input represents a single set of normalized input parameters
 # serves as the "feedback loop" for the optimizer - how well the current parameters perform
 def objective(X_input):
     # X_input will be in the normalized space, so we need to predict in normalized space first
-    X_input_reshaped = X_input.reshape(1, -1)  # Reshape to match the input shape
-    Y_pred_normalized = model.predict(X_input_reshaped)
+    Y_pred_normalized_ob = model.predict(X_input.reshape(1, -1))
 
     # Reverse the normalization to get the predicted output in the original scale
-    Y_pred_original = scaler_Y.inverse_transform(Y_pred_normalized)
+    Y_pred_ob = scaler_Y.inverse_transform(Y_pred_normalized_ob.reshape(1, -1))
+
+    print("Y_pred_ob:\n", Y_pred_ob)
+    print("Y_desired:\n", Y_desired)
 
     # Calculate the error
-    error = np.mean((Y_pred_original - Y_desired) ** 2)
+    error = np.mean((Y_pred_ob - Y_desired) ** 2)
     print("error: ", error)
     return error
 
@@ -188,6 +236,7 @@ if Y_desired.shape[1] != Y.shape[1]:
 # corresponds to normalized values at the midpoint of the scaled range
 # domain knowledge or data insights should be used as the initial guess
 initial_guess = np.mean(X_normalized, axis=0)
+print("initial_guess: ", initial_guess)
 
 # Optimization is the process of adjusting input parameters (X_input) to minimize a target error.
 # The steps include:
@@ -202,10 +251,12 @@ initial_guess = np.mean(X_normalized, axis=0)
 #     "catalyst amount %" - 0, 1
 # ftol - threshold controls how small the objective function's
 #   changes need to be between iterations before the optimizer stops
+bounds = [(0, 1) for _ in range(X_normalized.shape[1])]
+print("X_pca_reduced.shape[0] ", X_pca_reduced.shape[1])
 result = minimize(
     objective,
     initial_guess,
-    bounds=[(-2, 2)] * X.shape[1],
+    bounds=bounds,
     method='L-BFGS-B',
     options={'ftol': 1e-4, 'maxiter': 1000}
 )
@@ -213,11 +264,16 @@ result = minimize(
 if result.success:
     # Output
     # result.x contains the optimal input parameters found by the optimizer in normalized space as a 1D array
-    optimal_X_normalized = result.x
+    optimal_X_normalized_pca = result.x.reshape(1, -1)
+    print("optimal_X_normalized_pca:\n", optimal_X_normalized_pca)
 
     # inverse_transform of StandardScaler expects a 2D array as input.
     # that's why reshape used
-    optimal_X = scaler_X.inverse_transform(optimal_X_normalized.reshape(1, -1))
+    optimal_X_pca = scaler_X.inverse_transform(optimal_X_normalized_pca)
+    print("optimal_X_pca:\n", optimal_X_pca)
+
+    optimal_X = pca.inverse_transform(np.hstack((optimal_X_pca, np.zeros((X_pca.shape[0], 1)))))
+    print("optimal_X_normalized:\n", optimal_X)
 
     print(result.message)
 
