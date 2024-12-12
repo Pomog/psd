@@ -152,13 +152,13 @@ model = LinearRegression()
 
 # Calculating the weights and the intercept of the linear regression equation based the normalized data
 # The method starts with some initial guesses for W and b often zeros
-model.fit(X_pca_reduced, Y_normalized)
+model.fit(X_normalized, Y_normalized)
 
 print("Calculated W\n", model.coef_)
 print("Calculated b\n", model.intercept_)
 
 # Accuracy of the model
-Y_pred_normalized = model.predict(X_pca_reduced)
+Y_pred_normalized = model.predict(X_normalized)
 Y_pred = scaler_Y.inverse_transform(Y_pred_normalized)
 print("Predicted results:")
 print(Y_pred)
@@ -186,21 +186,22 @@ for i, param_name in enumerate(parameter_names):
     plt.show()
 
 poly_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
-poly_model.fit(X, Y)
+poly_model.fit(X_normalized, Y_normalized)
 
-Y_pred_poly = poly_model.predict(X)
+Y_pred_poly_normalized = poly_model.predict(X_normalized)
+Y_pred_poly = scaler_Y.inverse_transform(Y_pred_poly_normalized)
 print("Predicted results Poly model, degree 2:")
 print(Y_pred_poly)
 
-poly_mse = mean_squared_error(Y, poly_model.predict(X))
-poly_r2 = r2_score(Y, poly_model.predict(X))
+poly_mse = mean_squared_error(Y, Y_pred_poly)
+poly_r2 = r2_score(Y, Y_pred_poly)
 
 print(f"POLY MSE: {poly_mse}, POLY R^2: {poly_r2}")
 
 for i, param_name in enumerate(parameter_names):
     label_text = param_name + " Polynomial regression model"
     plt.scatter(X[:, i], Y, label=label_text)
-    plt.plot(X[:, i], poly_model.predict(X), color='red')
+    plt.plot(X[:, i], Y_pred_poly, color='red')
     plt.xlabel(param_name)
     plt.ylabel("Result")
     plt.title(f"Dependency {param_name}")
@@ -211,6 +212,7 @@ for i, param_name in enumerate(parameter_names):
 # X_input represents a single set of normalized input parameters
 # serves as the "feedback loop" for the optimizer - how well the current parameters perform
 def objective(X_input):
+    print("X_input: ", X_input)
     # X_input will be in the normalized space, so we need to predict in normalized space first
     Y_pred_normalized_ob = model.predict(X_input.reshape(1, -1))
 
@@ -245,20 +247,13 @@ print("initial_guess: ", initial_guess)
 # adjustment
 # convergence
 # L-BFGS-B - numerical optimization algorithm
-# bounds - valid ranges for each parameter in normalized space
-#     "solvent/reagent mass" - 0, 1
-#     "temperature C" - 1, 1
-#     "catalyst amount %" - 0, 1
 # ftol - threshold controls how small the objective function's
 #   changes need to be between iterations before the optimizer stops
-bounds = [(0, 1) for _ in range(X_normalized.shape[1])]
-print("X_pca_reduced.shape[0] ", X_pca_reduced.shape[1])
 result = minimize(
     objective,
     initial_guess,
-    bounds=bounds,
     method='L-BFGS-B',
-    options={'ftol': 1e-4, 'maxiter': 1000}
+    options={'ftol': 1e-1, 'maxiter': 1000}
 )
 
 if result.success:
@@ -269,10 +264,10 @@ if result.success:
 
     # inverse_transform of StandardScaler expects a 2D array as input.
     # that's why reshape used
-    optimal_X_pca = scaler_X.inverse_transform(optimal_X_normalized_pca)
-    print("optimal_X_pca:\n", optimal_X_pca)
+    optimal_X_normalized = scaler_X.inverse_transform(optimal_X_normalized_pca)
+    print("optimal_X_normalized:\n", optimal_X_normalized)
 
-    optimal_X = pca.inverse_transform(np.hstack((optimal_X_pca, np.zeros((X_pca.shape[0], 1)))))
+    optimal_X = pca.inverse_transform(np.hstack((optimal_X_normalized_pca, np.zeros((1, 1)))))
     print("optimal_X_normalized:\n", optimal_X)
 
     print(result.message)
