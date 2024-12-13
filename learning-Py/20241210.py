@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pca
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
@@ -88,15 +89,13 @@ output_names = [
 ]
 
 # Output results: yield %, purity %
-Y = np.array([
-    [50],
-    [55],
-    [60],
-    [65],
-    [70],
-    [80],
-    [90]
-])
+Y = np.array([[50],
+              [55],
+              [60],
+              [90],  # Local maximum
+              [70],
+              [80],
+              [90]])
 
 if X.shape[0] != Y.shape[0]:
     raise ValueError("Number of samples in X and Y must be the same.")
@@ -197,7 +196,6 @@ poly_mse = mean_squared_error(Y, Y_pred_poly)
 poly_r2 = r2_score(Y, Y_pred_poly)
 
 print(f"POLY MSE: {poly_mse}, POLY R^2: {poly_r2}")
-
 for i, param_name in enumerate(parameter_names):
     label_text = param_name + " Polynomial regression model"
     plt.scatter(X[:, i], Y, label=label_text)
@@ -214,7 +212,7 @@ for i, param_name in enumerate(parameter_names):
 def objective(X_input):
     print("X_input: ", X_input)
     # X_input will be in the normalized space, so we need to predict in normalized space first
-    Y_pred_normalized_ob = model.predict(X_input.reshape(1, -1))
+    Y_pred_normalized_ob = poly_model.predict(X_input.reshape(1, -1))
 
     # Reverse the normalization to get the predicted output in the original scale
     Y_pred_ob = scaler_Y.inverse_transform(Y_pred_normalized_ob.reshape(1, -1))
@@ -258,29 +256,23 @@ result = minimize(
 
 if result.success:
     # Output
-    # result.x contains the optimal input parameters found by the optimizer in normalized space as a 1D array
-    optimal_X_normalized_pca = result.x.reshape(1, -1)
-    print("optimal_X_normalized_pca:\n", optimal_X_normalized_pca)
+    print("Optimization successful!")
+    # the optimal input parameters found by the optimizer in normalized space
+    optimal_X_normalized = result.x
 
-    # inverse_transform of StandardScaler expects a 2D array as input.
-    # that's why reshape used
-    optimal_X_normalized = scaler_X.inverse_transform(optimal_X_normalized_pca)
-    print("optimal_X_normalized:\n", optimal_X_normalized)
+    # Convert the optimal normalized parameters back to the original scale
+    optimal_X_pca_reduced = scaler_X.inverse_transform(optimal_X_normalized.reshape(1, -1))
 
-    optimal_X = pca.inverse_transform(np.hstack((optimal_X_normalized_pca, np.zeros((1, 1)))))
-    print("optimal_X_normalized:\n", optimal_X)
+    # Use PCA to reconstruct the original scale from PCA-reduced values
+    optimal_X_original = pca.inverse_transform(np.hstack((optimal_X_pca_reduced, np.zeros((1, 1)))))
 
-    print(result.message)
+    print("Optimal parameters (original scale):", optimal_X_original)
 
-    # Prints the desired output:
-    print("\nDesired target:")
-    for output_name, value in zip(output_names, Y_desired[0]):
-        print(f"  {output_name}: {value:.2f}")
+    # Predict the corresponding yield for the optimal parameters
+    optimal_Y_pred_normalized = poly_model.predict(optimal_X_normalized.reshape(1, -1))
+    optimal_Y_pred = scaler_Y.inverse_transform(optimal_Y_pred_normalized.reshape(1, -1))
 
-    # Print the optimized input parameters
-    print("\nOptimized input parameters to get the desired output:")
-    for param_name, value in zip(parameter_names, optimal_X[0]):
-        print(f"  {param_name}: {value:.2f}")
-
+    print("Predicted output for optimal parameters:", optimal_Y_pred)
 else:
     print("Optimization failed:", result.message)
+
