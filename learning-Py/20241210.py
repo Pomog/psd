@@ -184,12 +184,12 @@ for i, param_name in enumerate(parameter_names):
     plt.legend()
     plt.show()
 
-poly_model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+poly_model = make_pipeline(PolynomialFeatures(degree=4), LinearRegression())
 poly_model.fit(X_normalized, Y_normalized)
 
 Y_pred_poly_normalized = poly_model.predict(X_normalized)
 Y_pred_poly = scaler_Y.inverse_transform(Y_pred_poly_normalized)
-print("Predicted results Poly model, degree 2:")
+print("Predicted results Poly model:")
 print(Y_pred_poly)
 
 poly_mse = mean_squared_error(Y, Y_pred_poly)
