@@ -131,14 +131,14 @@ def objective(X_input):
 initial_guess = np.mean(X_normalized, axis=0)
 
 bounds = [
-    (X_min[0], X_max[0]),  # 'remaining MEK / IP.4'
-    (X_min[1], X_max[1]),  # 'Tmin during concentration'
-    (X_min[2], X_max[2]),  # 'Tstart' (e.g., between 50 and 70)
-    (X_min[3], X_max[3]),  # 'RPM, crystallization'
-    (X_min[4], X_max[4]),  # 'temp slope'
-    (X_min[5], X_max[5]),  # 'start cooling rate slope'
-    (X_min[6], X_max[6]),  # 'middle cooling rate slope'
-    (X_min[7], X_max[7])  # 'final cooling rate slope'
+    (X_min[0], X_max[0]),   # 'remaining MEK / IP.4'
+    (X_min[1], X_max[1]),   # 'Tmin during concentration'
+    (None, None),           # 'Tstart' (e.g., between 50 and 70)
+    (X_min[3], X_max[3]),   # 'RPM, crystallization'
+    (None, None),           # 'temp slope'
+    (None, None),           # 'start cooling rate slope'
+    (X_min[6], X_max[6]),   # 'middle cooling rate slope'
+    (X_min[7], X_max[7])    # 'final cooling rate slope'
 ]
 
 # Perform the optimization to find the best input parameters
