@@ -64,17 +64,17 @@ print(correlation_matrix.round(2).to_string())
 scaler_X = StandardScaler()
 X_normalized = scaler_X.fit_transform(X)
 
-print("\nNormalized input data (X):\n", X_normalized)
+# We'll use min and max normalized parameters as boundaries
+X_min = np.min(X_normalized, axis=0)
+X_max = np.max(X_normalized, axis=0)
+
 
 # Normalize output data (Y) using StandardScaler
 scaler_Y = StandardScaler()
 Y_normalized = scaler_Y.fit_transform(Y)
 
-# Make the model
-# model = make_pipeline(PolynomialFeatures(degree=4), LinearRegression())
 # The LinearRegression is used because it is easy to get the weight coefficients
 model = LinearRegression()
-
 model.fit(X_normalized, Y_normalized)
 
 print("\nWeight coefficients (coefficients of the linear regression model):")
@@ -131,14 +131,14 @@ def objective(X_input):
 initial_guess = np.mean(X_normalized, axis=0)
 
 bounds = [
-    (None, None),  # 'remaining MEK / IP.4'
-    (None, None),  # 'Tmin during concentration'
-    (None, None),  # 'Tstart' (e.g., between 50 and 70)
-    (None, None),  # 'RPM, crystallization'
-    (None, None),  # 'temp slope'
-    (None, None),  # 'start cooling rate slope'
-    (None, None),  # 'middle cooling rate slope'
-    (None, None)  # 'final cooling rate slope'
+    (X_min[0], X_max[0]),  # 'remaining MEK / IP.4'
+    (X_min[1], X_max[1]),  # 'Tmin during concentration'
+    (X_min[2], X_max[2]),  # 'Tstart' (e.g., between 50 and 70)
+    (X_min[3], X_max[3]),  # 'RPM, crystallization'
+    (X_min[4], X_max[4]),  # 'temp slope'
+    (X_min[5], X_max[5]),  # 'start cooling rate slope'
+    (X_min[6], X_max[6]),  # 'middle cooling rate slope'
+    (X_min[7], X_max[7])  # 'final cooling rate slope'
 ]
 
 # Perform the optimization to find the best input parameters

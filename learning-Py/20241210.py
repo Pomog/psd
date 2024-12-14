@@ -24,7 +24,7 @@ X = np.array([
     [6, 50, 5],
     [7, 40, 4],
     [8, 30, 3],
-    [9, 20, 1]
+    [3.5, 65, 9]
 ])
 
 df = pd.DataFrame(X, columns=parameter_names)
@@ -95,7 +95,7 @@ Y = np.array([[50],
               [90],  # Local maximum
               [70],
               [80],
-              [90]])
+              [53]])
 
 if X.shape[0] != Y.shape[0]:
     raise ValueError("Number of samples in X and Y must be the same.")
