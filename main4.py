@@ -77,7 +77,7 @@ Y_normalized = scaler_Y.fit_transform(Y)
 model = LinearRegression()
 model.fit(X_normalized, Y_normalized)
 
-print("\nWeight coefficients (coefficients of the linear regression model):")
+print("\nWeight coefficients (coefficients for the normalized data of the linear regression model):")
 for param_name, coef in zip(parameter_names, model.coef_[0]):
     print(f"{param_name}: {coef:.4f}")
 
