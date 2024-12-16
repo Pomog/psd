@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
 # Define the parameter names (corresponding to the columns)
 parameter_names = [
@@ -62,7 +62,7 @@ print("if correlation values (≥0.8) are high between parameters, the model may
 print(correlation_matrix.round(2).to_string())
 
 # Normalize input data (X) using StandardScaler
-scaler_X = StandardScaler()
+scaler_X = RobustScaler()
 X_normalized = scaler_X.fit_transform(X)
 
 # Principal Component Analysis
